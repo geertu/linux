@@ -16,6 +16,12 @@
 #include <linux/module.h>
 #include <linux/errno.h>
 #include <linux/io.h>
+#include <linux/reboot.h>
+
+/* reset register located at the base address */
+#define RESET_REG_OFF       0
+
+#define RESET_REG_VALUE     1
 
 /* scratch register located one "simple CSR" past the base address */
 #define SCRATCH_REG_OFF     4
@@ -34,9 +40,9 @@ int litex_check_accessors(void)
 	return accessors_ok;
 }
 
-struct litex_soc_ctrl_device {
+static struct litex_soc_ctrl_device {
 	void __iomem *base;
-};
+} *soc_ctrl_dev;
 
 /* Check LiteX CSR read/write access */
 static int litex_check_csr_access(void __iomem *reg_addr)
@@ -71,6 +77,18 @@ static int litex_check_csr_access(void __iomem *reg_addr)
 	return 0;
 }
 
+static int litex_reset_handler(struct notifier_block *this, unsigned long mode,
+			       void *cmd)
+{
+	litex_reg_writel(soc_ctrl_dev->base + RESET_REG_OFF, RESET_REG_VALUE);
+	return NOTIFY_DONE;
+}
+
+static struct notifier_block litex_reset_nb = {
+	.notifier_call = litex_reset_handler,
+	.priority = 192,
+};
+
 static const struct of_device_id litex_soc_ctrl_of_match[] = {
 	{.compatible = "litex,soc_controller"},
 	{},
@@ -83,8 +101,8 @@ static int litex_soc_ctrl_probe(struct platform_device *pdev)
 	struct device *dev;
 	struct device_node *node;
 	const struct of_device_id *id;
-	struct litex_soc_ctrl_device *soc_ctrl_dev;
 	struct resource *res;
+	int error;
 
 	dev = &pdev->dev;
 	node = dev->of_node;
@@ -107,11 +125,22 @@ static int litex_soc_ctrl_probe(struct platform_device *pdev)
 	if (IS_ERR_OR_NULL(soc_ctrl_dev->base))
 		return -EIO;
 
-	return litex_check_csr_access(soc_ctrl_dev->base);
+	error = litex_check_csr_access(soc_ctrl_dev->base);
+	if (error)
+		return error;
+
+	error = register_restart_handler(&litex_reset_nb);
+	if (error) {
+		dev_warn(&pdev->dev, "cannot register restart handler: %d\n",
+			 error);
+	}
+
+	return 0;
 }
 
 static int litex_soc_ctrl_remove(struct platform_device *pdev)
 {
+	unregister_restart_handler(&litex_reset_nb);
 	return 0;
 }
 
