@@ -3169,22 +3169,19 @@ int btrfs_sync_log(struct btrfs_trans_handle *trans,
 
 	mutex_lock(&log_root_tree->log_mutex);
 
-	index2 = log_root_tree->log_transid % 2;
-	list_add_tail(&root_log_ctx.list, &log_root_tree->log_ctxs[index2]);
-	root_log_ctx.log_transid = log_root_tree->log_transid;
-
 	if (btrfs_is_zoned(fs_info)) {
-		mutex_lock(&fs_info->tree_root->log_mutex);
 		if (!log_root_tree->node) {
 			ret = btrfs_alloc_log_tree_node(trans, log_root_tree);
 			if (ret) {
-				mutex_unlock(&fs_info->tree_log_mutex);
 				mutex_unlock(&log_root_tree->log_mutex);
 				goto out;
 			}
 		}
-		mutex_unlock(&fs_info->tree_root->log_mutex);
 	}
+
+	index2 = log_root_tree->log_transid % 2;
+	list_add_tail(&root_log_ctx.list, &log_root_tree->log_ctxs[index2]);
+	root_log_ctx.log_transid = log_root_tree->log_transid;
 
 	/*
 	 * Now we are safe to update the log_root_tree because we're under the

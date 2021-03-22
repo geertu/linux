@@ -535,10 +535,16 @@ struct kvm_vcpu_hv {
 /* Xen HVM per vcpu emulation context */
 struct kvm_vcpu_xen {
 	u64 hypercall_rip;
+	u32 current_runstate;
 	bool vcpu_info_set;
 	bool vcpu_time_info_set;
+	bool runstate_set;
 	struct gfn_to_hva_cache vcpu_info_cache;
 	struct gfn_to_hva_cache vcpu_time_info_cache;
+	struct gfn_to_hva_cache runstate_cache;
+	u64 last_steal;
+	u64 runstate_entry_time;
+	u64 runstate_times[4];
 };
 
 struct kvm_vcpu_arch {
@@ -878,12 +884,29 @@ struct kvm_hv_syndbg {
 	u64 options;
 };
 
+/* Current state of Hyper-V TSC page clocksource */
+enum hv_tsc_page_status {
+	/* TSC page was not set up or disabled */
+	HV_TSC_PAGE_UNSET = 0,
+	/* TSC page MSR was written by the guest, update pending */
+	HV_TSC_PAGE_GUEST_CHANGED,
+	/* TSC page MSR was written by KVM userspace, update pending */
+	HV_TSC_PAGE_HOST_CHANGED,
+	/* TSC page was properly set up and is currently active  */
+	HV_TSC_PAGE_SET,
+	/* TSC page is currently being updated and therefore is inactive */
+	HV_TSC_PAGE_UPDATING,
+	/* TSC page was set up with an inaccessible GPA */
+	HV_TSC_PAGE_BROKEN,
+};
+
 /* Hyper-V emulation context */
 struct kvm_hv {
 	struct mutex hv_lock;
 	u64 hv_guest_os_id;
 	u64 hv_hypercall;
 	u64 hv_tsc_page;
+	enum hv_tsc_page_status hv_tsc_page_status;
 
 	/* Hyper-v based guest crash (NT kernel bugcheck) parameters */
 	u64 hv_crash_param[HV_X64_MSR_CRASH_PARAMS];
@@ -925,6 +948,12 @@ enum kvm_irqchip_mode {
 	KVM_IRQCHIP_SPLIT,        /* created with KVM_CAP_SPLIT_IRQCHIP */
 };
 
+struct kvm_x86_msr_filter {
+	u8 count;
+	bool default_allow:1;
+	struct msr_bitmap_range ranges[16];
+};
+
 #define APICV_INHIBIT_REASON_DISABLE    0
 #define APICV_INHIBIT_REASON_HYPERV     1
 #define APICV_INHIBIT_REASON_NESTED     2
@@ -939,9 +968,6 @@ struct kvm_arch {
 	unsigned int indirect_shadow_pages;
 	u8 mmu_valid_gen;
 	struct hlist_head mmu_page_hash[KVM_NUM_MMU_PAGES];
-	/*
-	 * Hash table of struct kvm_mmu_page.
-	 */
 	struct list_head active_mmu_pages;
 	struct list_head zapped_obsolete_pages;
 	struct list_head lpage_disallowed_mmu_pages;
@@ -960,7 +986,7 @@ struct kvm_arch {
 	struct kvm_pit *vpit;
 	atomic_t vapics_in_nmi_mode;
 	struct mutex apic_map_lock;
-	struct kvm_apic_map *apic_map;
+	struct kvm_apic_map __rcu *apic_map;
 	atomic_t apic_map_dirty;
 
 	bool apic_access_page_done;
@@ -1022,18 +1048,13 @@ struct kvm_arch {
 	bool guest_can_read_msr_platform_info;
 	bool exception_payload_enabled;
 
-	/* Deflect RDMSR and WRMSR to user space when they trigger a #GP */
-	u32 user_space_msr_mask;
-
-	struct {
-		u8 count;
-		bool default_allow:1;
-		struct msr_bitmap_range ranges[16];
-	} msr_filter;
-
 	bool bus_lock_detection_enabled;
 
-	struct kvm_pmu_event_filter *pmu_event_filter;
+	/* Deflect RDMSR and WRMSR to user space when they trigger a #GP */
+	u32 user_space_msr_mask;
+	struct kvm_x86_msr_filter __rcu *msr_filter;
+
+	struct kvm_pmu_event_filter __rcu *pmu_event_filter;
 	struct task_struct *nx_lpage_recovery_thread;
 
 #ifdef CONFIG_X86_64
