@@ -1,6 +1,6 @@
 
-ccflags-$(CONFIG_NVDLA) += -Idrivers/nvdla
-ccflags-$(CONFIG_NVDLA) += -Idrivers/nvdla/include
+ccflags-$(CONFIG_NVDLA) += -I$(srctree)/$(src)
+ccflags-$(CONFIG_NVDLA) += -I$(srctree)/$(src)/include
 
 obj-$(CONFIG_NVDLA) += scheduler.o
 obj-$(CONFIG_NVDLA) += engine.o
