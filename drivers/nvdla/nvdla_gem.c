@@ -80,8 +80,6 @@ static int32_t nvdla_fill_task_desc(struct nvdla_ioctl_submit_task *local_task,
 	}
 
 	task->address_list = handles;
-
-	nvdla_flush_dcache(dw_virt_to_phys((void *)(task)),sizeof(*task));
 	return 0;
 }
 

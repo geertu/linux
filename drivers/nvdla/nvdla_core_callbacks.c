@@ -113,7 +113,6 @@ void dla_error(const char *str, ...)
 void *dla_memset(void *src, int ch, uint64_t len)
 {
 	memset(src, ch, len);
-	nvdla_flush_dcache(dw_virt_to_phys(src),len);
 	return src;
 }
 
@@ -255,11 +254,7 @@ int32_t dla_data_write(void *driver_context, void *task_data,
 		goto end_cpu_access;
 	}
 
-
-	nvdla_flush_dcache(dw_virt_to_phys(src),size);
 	memcpy((void *)((uint8_t *)ptr + offset), src, size);
-	nvdla_flush_dcache(dma_addr+offset,size);
-
 	dma_buf_vunmap(buf, &map);
 
 end_cpu_access:
@@ -306,10 +301,7 @@ int32_t dla_data_read(void *driver_context, void *task_data,
 		goto end_cpu_access;
 	}
 
-	nvdla_flush_dcache(dma_addr+offset,size);
 	memcpy(dst, (void *)(((uint8_t *)ptr) + offset), size);
-	nvdla_flush_dcache(dw_virt_to_phys(dst),size);
-
 	dma_buf_vunmap(buf, &map);
 
 end_cpu_access:
