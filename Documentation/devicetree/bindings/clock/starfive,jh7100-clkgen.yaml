@@ -24,13 +24,13 @@ properties:
 
   clock-names:
     items:
-      - const: osc0
-      - const: osc1
+      - const: osc_sys
+      - const: osc_aud
 
   '#clock-cells':
     const: 1
     description:
-      See <dt-bindings/clock/starfive-jh7100-clkgen.h> for valid indices.
+      See <dt-bindings/clock/starfive-jh7100.h> for valid indices.
 
 required:
   - compatible
@@ -46,7 +46,7 @@ examples:
     clkgen: clock-controller@11800000 {
             compatible = "starfive,jh7100-clkgen";
             reg = <0x11800000 0x10000>;
-            clocks = <&osc0_clk>, <&osc1_clk>;
-            clock-names = "osc0", "osc1";
+            clocks = <&osc_sys>, <&osc_aud>;
+            clock-names = "osc_sys", "osc_aud";
             #clock-cells = <1>;
     };
