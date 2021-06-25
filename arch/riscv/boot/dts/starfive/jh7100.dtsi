@@ -2,7 +2,7 @@
 /* Copyright (c) 2021 StarFive Technology Co., Ltd. */
 
 /dts-v1/;
-#include <dt-bindings/clock/starfive-jh7100-clkgen.h>
+#include <dt-bindings/clock/starfive-jh7100.h>
 #include <dt-bindings/starfive_fb.h>
 #include <dt-bindings/gpio/gpio.h>
 
@@ -69,14 +69,14 @@
 		};
 	};
 
-	osc0_clk: osc0 {
+	osc_sys: osc_sys {
 		compatible = "fixed-clock";
 		#clock-cells = <0>;
 		/* This value must be overridden by the board */
 		clock-frequency = <0>;
 	};
 
-	osc1_clk: osc1 {
+	osc_aud: osc_aud {
 		compatible = "fixed-clock";
 		#clock-cells = <0>;
 		/* This value must be overridden by the board */
@@ -150,8 +150,8 @@
 		clkgen: clock-controller@11800000 {
 			compatible = "starfive,jh7100-clkgen";
 			reg = <0x0 0x11800000 0x0 0x10000>;
-			clocks = <&osc0_clk>, <&osc1_clk>;
-			clock-names = "osc0", "osc1";
+			clocks = <&osc_sys>, <&osc_aud>;
+			clock-names = "osc_sys", "osc_aud";
 			#clock-cells = <1>;
 		};
 
@@ -161,8 +161,8 @@
 			reg = <0x0 0x11870000 0x0 0x10000>;
 			reg-io-width = <4>;
 			reg-shift = <2>;
-			clocks = <&clkgen JH7100_CLK_HS_UART>,
-				 <&clkgen JH7100_CLK_APB1>;
+			clocks = <&clkgen JH7100_CLK_UART0_CORE>,
+				 <&clkgen JH7100_CLK_UART0_APB>;
 			clock-names = "baudclk", "apb_pclk";
 			current-clock = <74250000>;
 			current-speed = <115200>;
@@ -175,8 +175,8 @@
 			reg = <0x0 0x11880000 0x0 0x10000>;
 			reg-io-width = <4>;
 			reg-shift = <2>;
-			clocks = <&clkgen JH7100_CLK_HS_UART>,
-				 <&clkgen JH7100_CLK_APB1>;
+			clocks = <&clkgen JH7100_CLK_UART1_CORE>,
+				 <&clkgen JH7100_CLK_UART1_APB>;
 			clock-names = "baudclk", "apb_pclk";
 			current-clock = <74250000>;
 			current-speed = <115200>;
@@ -189,8 +189,8 @@
 			reg = <0x0 0x12430000 0x0 0x10000>;
 			reg-io-width = <4>;
 			reg-shift = <2>;
-			clocks = <&clkgen JH7100_CLK_UART>,
-				 <&clkgen JH7100_CLK_APB2>;
+			clocks = <&clkgen JH7100_CLK_UART2_CORE>,
+				 <&clkgen JH7100_CLK_UART2_APB>;
 			clock-names = "baudclk", "apb_pclk";
 			current-clock = <100000000>;
 			current-speed = <115200>;
@@ -203,8 +203,8 @@
 			reg = <0x0 0x12440000 0x0 0x10000>;
 			reg-io-width = <4>;
 			reg-shift = <2>;
-			clocks = <&clkgen JH7100_CLK_UART>,
-				 <&clkgen JH7100_CLK_APB2>;
+			clocks = <&clkgen JH7100_CLK_UART3_CORE>,
+				 <&clkgen JH7100_CLK_UART3_APB>;
 			clock-names = "baudclk", "apb_pclk";
 			current-clock = <100000000>;
 			current-speed = <115200>;
@@ -214,8 +214,8 @@
 		dma2p: dma-controller@100b0000 {
 			compatible = "snps,axi-dma-1.01a";
 			reg = <0x0 0x100b0000 0x0 0x10000>;
-			clocks = <&clkgen JH7100_CLK_AXI>,
-				 <&clkgen JH7100_CLK_AHB0>;
+			clocks = <&clkgen JH7100_CLK_SGDMA2P_AXI>,
+				 <&clkgen JH7100_CLK_SGDMA2P_AHB>;
 			clock-names = "core-clk", "cfgr-clk";
 			interrupts = <2>;
 		        #dma-cells = <1>;
@@ -231,8 +231,8 @@
 		dma1p: dma-controller@10500000 {
 			compatible = "snps,axi-dma-1.01a";
 			reg = <0x0 0x10500000 0x0 0x10000>;
-			clocks = <&clkgen JH7100_CLK_AXI>,
-				 <&clkgen JH7100_CLK_AHB0>;
+			clocks = <&clkgen JH7100_CLK_SGDMA1P_AXI>,
+				 <&clkgen JH7100_CLK_SGDMA1P_BUS>;
 			clock-names = "core-clk", "cfgr-clk";
 			interrupts = <1>;
 		        #dma-cells = <1>;
@@ -261,6 +261,7 @@
 		gpio: gpio@11910000 {
 			compatible = "starfive,jh7100-gpio";
 			reg = <0x0 0x11910000 0x0 0x10000>;
+			clocks = <&clkgen JH7100_CLK_GPIO_APB>;
 			gpio-controller;
 			#gpio-cells = <2>;
 			interrupt-controller;
@@ -271,44 +272,48 @@
 		i2c0: i2c@118b0000 {
 			#address-cells = <1>;
 			#size-cells = <0>;
-			#clock-cells = <0>;
 			compatible = "snps,designware-i2c";
 			reg = <0x0 0x118b0000 0x0 0x10000>;
 			interrupts = <96>;
-			clocks = <&clkgen JH7100_CLK_I2C0>;
+			clocks = <&clkgen JH7100_CLK_I2C0_CORE>,
+				 <&clkgen JH7100_CLK_I2C0_APB>;
+			clock-names = "core", "pclk";
 			status = "disabled";
 		};
 
 		i2c1: i2c@118c0000 {
 			#address-cells = <1>;
 			#size-cells = <0>;
-			#clock-cells = <0>;
 			compatible = "snps,designware-i2c";
 			reg = <0x0 0x118c0000 0x0 0x10000>;
 			interrupts = <97>;
-			clocks = <&clkgen JH7100_CLK_I2C0>;
+			clocks = <&clkgen JH7100_CLK_I2C1_CORE>,
+				 <&clkgen JH7100_CLK_I2C1_APB>;
+			clock-names = "core", "pclk";
 			status = "disabled";
 		};
 
 		i2c2: i2c@12450000 {
 			#address-cells = <1>;
 			#size-cells = <0>;
-			#clock-cells = <0>;
 			compatible = "snps,designware-i2c";
 			reg = <0x0 0x12450000 0x0 0x10000>;
 			interrupts = <74>;
-			clocks = <&clkgen JH7100_CLK_I2C2>;
+			clocks = <&clkgen JH7100_CLK_I2C2_CORE>,
+				 <&clkgen JH7100_CLK_I2C2_APB>;
+			clock-names = "core", "pclk";
 			status = "disabled";
 		};
 
 		i2c3: i2c@12460000 {
 			#address-cells = <1>;
 			#size-cells = <0>;
-			#clock-cells = <0>;
 			compatible = "snps,designware-i2c";
 			reg = <0x0 0x12460000 0x0 0x10000>;
 			interrupts = <75>;
-			clocks = <&clkgen JH7100_CLK_I2C2>;
+			clocks = <&clkgen JH7100_CLK_I2C3_CORE>,
+				 <&clkgen JH7100_CLK_I2C3_APB>;
+			clock-names = "core", "pclk";
 			status = "disabled";
 		};
 
@@ -316,7 +321,7 @@
 			compatible = "starfive,vic-rng";
 			reg = <0x0 0x118d0000 0x0 0x10000>;
 			interrupts = <98>;
-			clocks = <&clkgen JH7100_CLK_HF>;
+			clocks = <&clkgen JH7100_CLK_TRNG_APB>;
 		};
 
 		crypto: crypto@100d0000 {
@@ -325,7 +330,7 @@
 			      <0x0 0x11800234 0x0 0xc>;
 			reg-names = "secmem", "secclk";
 			interrupts = <31>;
-			clocks = <&clkgen JH7100_CLK_HF>;
+			clocks = <&clkgen JH7100_CLK_SEC_AHB>;
 		};
 
 		/* gmac device configuration */
@@ -346,8 +351,10 @@
 			snps,perfect-filter-entries = <128>;
 			rx-fifo-depth = <32768>;
 			tx-fifo-depth = <16384>;
-			clocks = <&clkgen JH7100_CLK_GMAC>;
-			clock-names = "stmmaceth";
+			clocks = <&clkgen JH7100_CLK_GMAC_AHB>,
+				 <&clkgen JH7100_CLK_GMAC_AHB>,
+				 <&clkgen JH7100_CLK_GMAC_PTP_REF>;
+			clock-names = "stmmaceth", "pclk", "ptp_ref";
 			snps,fixed-burst;
 			snps,no-pbl-x8 = <1>;
 			/*snps,force_sf_dma_mode;*/
@@ -368,7 +375,7 @@
 			reg = <0x0 0x11900000 0x0 0x300>;
 			memory-region = <&jpu_reserved>;
 			interrupts = <24>;
-			clocks = <&clkgen JH7100_CLK_JPU>;
+			clocks = <&clkgen JH7100_CLK_JPEG_APB>;
 			clock-names = "jpege";
 			reg-names = "control";
 			status = "okay";
@@ -379,7 +386,7 @@
 			reg = <0 0x118f0000 0 0x10000>;
 			//memory-region = <&vpu_reserved>;
 			interrupts = <23>;
-			clocks = <&clkgen JH7100_CLK_VPU>;
+			clocks = <&clkgen JH7100_CLK_VP6_CORE>;
 			clock-names = "vcodec";
 			status = "okay";
 		};
@@ -388,7 +395,7 @@
 			compatible = "cm,cm521-vpu";
 			reg = <0x0 0x118e0000 0x0 0x4000>;
 			interrupts = <26>;
-			clocks = <&clkgen JH7100_CLK_VPU>;
+			clocks = <&clkgen JH7100_CLK_VP6_CORE>;
 			clock-names = "vcodec";
 			reg-names = "control";
 		};
@@ -398,7 +405,7 @@
 			reg = <0x0 0x12490000 0x0 0x10000>;
 			reg-names = "control";
 			sifive,approx-period = <100000000>;
-			clocks = <&clkgen JH7100_CLK_PWM>;
+			clocks = <&clkgen JH7100_CLK_PWM_APB>;
 			#pwm-cells = <3>;
 			sifive,npwm = <8>;
 
@@ -411,7 +418,7 @@
 			reg = <0x0 0x11860000 0x0 0x10000>,
 			      <0x0 0x20000000 0x0 0x20000000>;
 			interrupts = <3>;
-			clocks = <&clkgen JH7100_CLK_QSPI>;
+			clocks = <&clkgen JH7100_CLK_QSPI_AHB>;
 			cdns,fifo-depth = <256>;
 			cdns,fifo-width = <4>;
 			cdns,trigger-address = <0x0>;
@@ -425,7 +432,9 @@
 			#size-cells = <0>;
 			interrupts = <94>;
 			reg = <0x0 0x11890000 0x0 0x10000>;
-			clocks = <&clkgen JH7100_CLK_SPI>;
+			clocks = <&clkgen JH7100_CLK_SPI0_CORE>,
+				 <&clkgen JH7100_CLK_SPI0_APB>;
+			clock-names = "ssi_clk", "pclk";
 			status = "disabled";
 		};
 
@@ -435,7 +444,9 @@
 			#size-cells = <0>;
 			interrupts = <95>;
 			reg = <0x0 0x118a0000 0x0 0x10000>;
-			clocks = <&clkgen JH7100_CLK_SPI>;
+			clocks = <&clkgen JH7100_CLK_SPI1_CORE>,
+				 <&clkgen JH7100_CLK_SPI1_APB>;
+			clock-names = "ssi_clk", "pclk";
 			status = "disabled";
 		};
 
@@ -445,7 +456,9 @@
 			#size-cells = <0>;
 			interrupts = <70>;
 			reg = <0x0 0x12410000 0x0 0x10000>;
-			clocks = <&clkgen JH7100_CLK_SPI>;
+			clocks = <&clkgen JH7100_CLK_SPI2_CORE>,
+				 <&clkgen JH7100_CLK_SPI2_APB>;
+			clock-names = "ssi_clk", "pclk";
 			status = "disabled";
 		};
 
@@ -455,7 +468,9 @@
 			#size-cells = <0>;
 			interrupts = <71>;
 			reg = <0x0 0x12420000 0x0 0x10000>;
-			clocks = <&clkgen JH7100_CLK_SPI>;
+			clocks = <&clkgen JH7100_CLK_SPI3_CORE>,
+				 <&clkgen JH7100_CLK_SPI3_APB>;
+			clock-names = "ssi_clk", "pclk";
 			status = "disabled";
 		};
 
@@ -465,7 +480,7 @@
 			      <0x10 0x72000000 0x0 0x00001000>,
 			      <0x10 0x72001000 0x0 0x00fff000>,
 			      <0x0  0x124b0000 0x0 0x00010000>;
-			clocks = <&clkgen JH7100_CLK_HF>;
+			clocks = <&clkgen JH7100_CLK_VP6_CORE>;
 			firmware-name = "vp6_elf";
 			dsp-irq = <19 20>;
 			dsp-irq-src = <0x20 0x21>;
@@ -484,8 +499,9 @@
 			compatible = "snps,dw-mshc";
 			reg = <0x0 0x10000000 0x0 0x10000>;
 			interrupts = <4>;
-			clocks = <&clkgen JH7100_CLK_DWMMC_BIU>;
-			clock-names = "biu";
+			clocks = <&clkgen JH7100_CLK_SDIO0_AHB>,
+				 <&clkgen JH7100_CLK_SDIO0_CCLKINT>;
+			clock-names = "biu", "ciu";
 			clock-frequency = <100000000>;
 			data-addr = <0>;
 			fifo-depth = <32>;
@@ -497,8 +513,9 @@
 			compatible = "snps,dw-mshc";
 			reg = <0x0 0x10010000 0x0 0x10000>;
 			interrupts = <5>;
-			clocks = <&clkgen JH7100_CLK_DWMMC_BIU>;
-			clock-names = "biu";
+			clocks = <&clkgen JH7100_CLK_SDIO1_AHB>,
+				 <&clkgen JH7100_CLK_SDIO1_CCLKINT>;
+			clock-names = "biu", "ciu";
 			clock-frequency = <100000000>;
 			data-addr = <0>;
 			fifo-depth = <32>;
@@ -520,8 +537,10 @@
 			      <0x0 0x12260000 0x0 0x10000>;
 			reg-names = "lcdc", "dsitx", "vpp0", "vpp1", "vpp2", "clk", "rst", "sys";
 			memory-region = <&sffb_reserved>;
+#if 0 // FIXME uart clocks can't be right for lcdc
 			clocks = <&clkgen JH7100_CLK_UART>,
 				 <&clkgen JH7100_CLK_APB2>;
+#endif
 			clock-names = "baudclk", "apb_pclk";
 			ddr-format = <WIN_FMT_RGB565>;/*LCDC win_format*/
 			status = "disabled";
@@ -598,6 +617,7 @@
 			compatible = "starfive,fu740-otp";
 			reg = <0x0 0x11810000 0x0 0x10000>;
 			fuse-count = <0x200>;
+			clocks = <&clkgen JH7100_CLK_OTP_APB>;
 		};
 	};
 };
